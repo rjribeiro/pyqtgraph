@@ -91,7 +91,7 @@ examples = OrderedDict([
 
 
 def buildFileList(examples, files=None):
-    if files == None:
+    if files is None:
         files = []
     for key, val in examples.items():
         #item = QtGui.QTreeWidgetItem([key])
@@ -110,9 +110,13 @@ def testFile(name, f, exe, lib, graphicsSystem=None):
     sys.stdout.write(name)
     sys.stdout.flush()
 
-    import1 = "import %s" % lib if lib != '' else ''
+    import1 = f"import {lib}" if lib != '' else ''
     import2 = os.path.splitext(os.path.split(fn)[1])[0]
-    graphicsSystem = '' if graphicsSystem is None else "pg.QtGui.QApplication.setGraphicsSystem('%s')" % graphicsSystem
+    graphicsSystem = (
+        ''
+        if graphicsSystem is None
+        else f"pg.QtGui.QApplication.setGraphicsSystem('{graphicsSystem}')"
+    )
     code = """
 try:
     %s
@@ -135,12 +139,16 @@ except:
 
     if sys.platform.startswith('win'):
         process = subprocess.Popen([exe], stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        process.stdin.write(code.encode('UTF-8'))
-        process.stdin.close()
     else:
-        process = subprocess.Popen(['exec %s -i' % (exe)], shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        process.stdin.write(code.encode('UTF-8'))
-        process.stdin.close() ##?
+        process = subprocess.Popen(
+            [f'exec {exe} -i'],
+            shell=True,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
+    process.stdin.write(code.encode('UTF-8'))
+    process.stdin.close()
     output = ''
     fail = False
     while True:

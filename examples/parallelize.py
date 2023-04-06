@@ -31,9 +31,7 @@ pg.mkQApp()
 start = time.time()
 with pg.ProgressDialog('processing serially..', maximum=len(tasks)) as dlg:
     for i, x in enumerate(tasks):
-        tot = 0
-        for j in xrange(size):
-            tot += j * x
+        tot = sum(j * x for j in xrange(size))
         results[i] = tot
         dlg += 1
         if dlg.wasCanceled():
@@ -45,21 +43,17 @@ print( "Serial time: %0.2f" % (time.time() - start))
 start = time.time()
 with mp.Parallelize(enumerate(tasks), results=results2, workers=1, progressDialog='processing serially (using Parallelizer)..') as tasker:
     for i, x in tasker:
-        tot = 0
-        for j in xrange(size):
-            tot += j * x
+        tot = sum(j * x for j in xrange(size))
         tasker.results[i] = tot
 print( "\nParallel time, 1 worker: %0.2f" % (time.time() - start))
-print( "Results match serial:  %s" % str(results2 == results))
+print(f"Results match serial:  {results2 == results}")
 
 ### Use parallelize with multiple workers
 start = time.time()
 with mp.Parallelize(enumerate(tasks), results=results3, progressDialog='processing in parallel..') as tasker:
     for i, x in tasker:
-        tot = 0
-        for j in xrange(size):
-            tot += j * x
+        tot = sum(j * x for j in xrange(size))
         tasker.results[i] = tot
 print( "\nParallel time, %d workers: %0.2f" % (mp.Parallelize.suggestedWorkerCount(), time.time() - start))
-print( "Results match serial:      %s" % str(results3 == results))
+print(f"Results match serial:      {results3 == results}")
 

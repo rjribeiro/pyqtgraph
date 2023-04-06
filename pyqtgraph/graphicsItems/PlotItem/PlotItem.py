@@ -126,9 +126,9 @@ class PlotItem(GraphicsWidget):
         """
         
         GraphicsWidget.__init__(self, parent)
-        
+
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        
+
         ## Set up control buttons
         path = os.path.dirname(__file__)
         #self.autoImageFile = os.path.join(path, 'auto.png')
@@ -139,58 +139,55 @@ class PlotItem(GraphicsWidget):
         #self.autoBtn.hide()
         self.buttonsHidden = False ## whether the user has requested buttons to be hidden
         self.mouseHovering = False
-        
+
         self.layout = QtGui.QGraphicsGridLayout()
         self.layout.setContentsMargins(1,1,1,1)
         self.setLayout(self.layout)
         self.layout.setHorizontalSpacing(0)
         self.layout.setVerticalSpacing(0)
-        
+
         if viewBox is None:
             viewBox = ViewBox(parent=self)
         self.vb = viewBox
         self.vb.sigStateChanged.connect(self.viewStateChanged)
         self.setMenuEnabled(enableMenu, enableMenu) ## en/disable plotitem and viewbox menus
-        
+
         if name is not None:
             self.vb.register(name)
         self.vb.sigRangeChanged.connect(self.sigRangeChanged)
         self.vb.sigXRangeChanged.connect(self.sigXRangeChanged)
         self.vb.sigYRangeChanged.connect(self.sigYRangeChanged)
-        
+
         self.layout.addItem(self.vb, 2, 1)
         self.alpha = 1.0
         self.autoAlpha = True
         self.spectrumMode = False
-        
+
         self.legend = None
-        
+
         ## Create and place axis items
         if axisItems is None:
             axisItems = {}
         self.axes = {}
         for k, pos in (('top', (1,1)), ('bottom', (3,1)), ('left', (2,0)), ('right', (2,2))):
-            if k in axisItems:
-                axis = axisItems[k]
-            else:
-                axis = AxisItem(orientation=k, parent=self)
+            axis = axisItems[k] if k in axisItems else AxisItem(orientation=k, parent=self)
             axis.linkToView(self.vb)
             self.axes[k] = {'item': axis, 'pos': pos}
             self.layout.addItem(axis, *pos)
             axis.setZValue(-1000)
             axis.setFlag(axis.ItemNegativeZStacksBehindParent)
-        
+
         self.titleLabel = LabelItem('', size='11pt', parent=self)
         self.layout.addItem(self.titleLabel, 0, 1)
         self.setTitle(None)  ## hide
-        
-        
+
+
         for i in range(4):
             self.layout.setRowPreferredHeight(i, 0)
             self.layout.setRowMinimumHeight(i, 0)
             self.layout.setRowSpacing(i, 0)
             self.layout.setRowStretchFactor(i, 1)
-            
+
         for i in range(3):
             self.layout.setColumnPreferredWidth(i, 0)
             self.layout.setColumnMinimumWidth(i, 0)
@@ -198,7 +195,7 @@ class PlotItem(GraphicsWidget):
             self.layout.setColumnStretchFactor(i, 1)
         self.layout.setRowStretchFactor(2, 100)
         self.layout.setColumnStretchFactor(1, 100)
-        
+
 
         self.items = []
         self.curves = []
@@ -206,14 +203,14 @@ class PlotItem(GraphicsWidget):
         self.dataItems = []
         self.paramList = {}
         self.avgCurves = {}
-        
+
         ### Set up context menu
-        
+
         w = QtGui.QWidget()
         self.ctrl = c = Ui_Form()
         c.setupUi(w)
         dv = QtGui.QDoubleValidator(self)
-        
+
         menuItems = [
             ('Transforms', c.transformGroup),
             ('Downsample', c.decimateGroup),
@@ -222,10 +219,10 @@ class PlotItem(GraphicsWidget):
             ('Grid', c.gridGroup),
             ('Points', c.pointsGroup),
         ]
-        
-        
+
+
         self.ctrlMenu = QtGui.QMenu()
-        
+
         self.ctrlMenu.setTitle('Plot Options')
         self.subMenus = []
         for name, grp in menuItems:
@@ -235,13 +232,13 @@ class PlotItem(GraphicsWidget):
             sm.addAction(act)
             self.subMenus.append(sm)
             self.ctrlMenu.addMenu(sm)
-        
+
         self.stateGroup = WidgetGroup()
         for name, w in menuItems:
             self.stateGroup.autoAdd(w)
-        
+
         self.fileDialog = None
-        
+
         c.alphaGroup.toggled.connect(self.updateAlpha)
         c.alphaSlider.valueChanged.connect(self.updateAlpha)
         c.autoAlphaCheck.toggled.connect(self.updateAlpha)
@@ -263,15 +260,15 @@ class PlotItem(GraphicsWidget):
 
         self.ctrl.avgParamList.itemClicked.connect(self.avgParamListClicked)
         self.ctrl.averageGroup.toggled.connect(self.avgToggled)
-        
+
         self.ctrl.maxTracesCheck.toggled.connect(self.updateDecimation)
         self.ctrl.maxTracesSpin.valueChanged.connect(self.updateDecimation)
-        
+
         self.hideAxis('right')
         self.hideAxis('top')
         self.showAxis('left')
         self.showAxis('bottom')
-        
+
         if labels is None:
             labels = {}
         for label in list(self.axes.keys()):
@@ -282,11 +279,11 @@ class PlotItem(GraphicsWidget):
             if isinstance(labels[k], basestring):
                 labels[k] = (labels[k],)
             self.setLabel(k, *labels[k])
-                
+
         if title is not None:
             self.setTitle(title)
-        
-        if len(kargs) > 0:
+
+        if kargs:
             self.plot(**kargs)
         
         
@@ -430,12 +427,12 @@ class PlotItem(GraphicsWidget):
         
     def addAvgCurve(self, curve):
         ## Add a single curve into the pool of curves averaged together
-        
+
         ## If there are plot parameters, then we need to determine which to average together.
         remKeys = []
         addKeys = []
         if self.ctrl.avgParamList.count() > 0:
-        
+
             ### First determine the key of the curve to which this new data should be averaged
             for i in range(self.ctrl.avgParamList.count()):
                 item = self.ctrl.avgParamList.item(i)
@@ -443,10 +440,10 @@ class PlotItem(GraphicsWidget):
                     remKeys.append(str(item.text()))
                 else:
                     addKeys.append(str(item.text()))
-                    
-            if len(remKeys) < 1:  ## In this case, there would be 1 average plot for each data plot; not useful.
+
+            if not remKeys:  ## In this case, there would be 1 average plot for each data plot; not useful.
                 return
-                
+
         p = self.itemMeta.get(curve,{}).copy()
         for k in p:
             if type(k) is tuple:
@@ -459,7 +456,7 @@ class PlotItem(GraphicsWidget):
             if ak not in p:
                 p[ak] = None
         key = tuple(p.items())
-        
+
         ### Create a new curve if needed
         if key not in self.avgCurves:
             plot = PlotDataItem()
@@ -471,7 +468,7 @@ class PlotItem(GraphicsWidget):
             self.avgCurves[key] = [0, plot]
         self.avgCurves[key][0] += 1
         (n, plot) = self.avgCurves[key]
-        
+
         ### Average data together
         (x, y) = curve.getData()
         stepMode = curve.opts['stepMode']
@@ -587,12 +584,12 @@ class PlotItem(GraphicsWidget):
         """
         Remove an item from the internal ViewBox.
         """
-        if not item in self.items:
+        if item not in self.items:
             return
         self.items.remove(item)
         if item in self.dataItems:
             self.dataItems.remove(item)
-            
+
         if item.scene() is not None:
             self.vb.removeItem(item)
         if item in self.curves:
@@ -631,17 +628,17 @@ class PlotItem(GraphicsWidget):
         
         
         clear = kargs.get('clear', False)
-        params = kargs.get('params', None)
-          
+        params = kargs.get('params')
+
         if clear:
             self.clear()
-            
+
         item = PlotDataItem(*args, **kargs)
-            
+
         if params is None:
             params = {}
         self.addItem(item, params=params)
-        
+
         return item
 
     def addLegend(self, size=None, offset=(30, 30)):
@@ -829,27 +826,24 @@ class PlotItem(GraphicsWidget):
             self.fileDialog.show()
             self.fileDialog.fileSelected.connect(self.writeCsv)
             return
-        #if fileName is None:
-            #fileName = QtGui.QFileDialog.getSaveFileName()
         fileName = str(fileName)
         PlotItem.lastFileDir = os.path.dirname(fileName)
-        
-        fd = open(fileName, 'w')
-        data = [c.getData() for c in self.curves]
-        i = 0
-        while True:
-            done = True
-            for d in data:
-                if i < len(d[0]):
-                    fd.write('%g,%g,'%(d[0][i], d[1][i]))
-                    done = False
-                else:
-                    fd.write(' , ,')
-            fd.write('\n')
-            if done:
-                break
-            i += 1
-        fd.close()
+
+        with open(fileName, 'w') as fd:
+            data = [c.getData() for c in self.curves]
+            i = 0
+            while True:
+                done = True
+                for d in data:
+                    if i < len(d[0]):
+                        fd.write('%g,%g,'%(d[0][i], d[1][i]))
+                        done = False
+                    else:
+                        fd.write(' , ,')
+                fd.write('\n')
+                if done:
+                    break
+                i += 1
 
 
     def saveState(self):
@@ -993,18 +987,17 @@ class PlotItem(GraphicsWidget):
             numCurves = self.ctrl.maxTracesSpin.value()
         else:
             numCurves = -1
-            
+
         curves = self.curves[:]
         split = len(curves) - numCurves
         for i in range(len(curves)):
             if numCurves == -1 or i >= split:
                 curves[i].show()
+            elif self.ctrl.forgetTracesCheck.isChecked():
+                curves[i].clear()
+                self.removeItem(curves[i])
             else:
-                if self.ctrl.forgetTracesCheck.isChecked():
-                    curves[i].clear()
-                    self.removeItem(curves[i])
-                else:
-                    curves[i].hide()
+                curves[i].hide()
         
       
     def updateAlpha(self, *args):
@@ -1025,13 +1018,9 @@ class PlotItem(GraphicsWidget):
 
     def pointMode(self):
         if self.ctrl.pointsGroup.isChecked():
-            if self.ctrl.autoPointsCheck.isChecked():
-                mode = None
-            else:
-                mode = True
+            return None if self.ctrl.autoPointsCheck.isChecked() else True
         else:
-            mode = False
-        return mode
+            return False
         
 
     def resizeEvent(self, ev):
@@ -1047,10 +1036,7 @@ class PlotItem(GraphicsWidget):
     
     def getContextMenus(self, event):
         ## called when another item is displaying its context menu; we get to add extras to the end of the menu.
-        if self.menuEnabled():
-            return self.ctrlMenu
-        else:
-            return None
+        return self.ctrlMenu if self.menuEnabled() else None
     
     def setMenuEnabled(self, enableMenu=True, enableViewBoxMenu='same'):
         """
@@ -1082,7 +1068,9 @@ class PlotItem(GraphicsWidget):
         
     def _checkScaleKey(self, key):
         if key not in self.axes:
-            raise Exception("Scale '%s' not found. Scales are: %s" % (key, str(list(self.axes.keys()))))
+            raise Exception(
+                f"Scale '{key}' not found. Scales are: {list(self.axes.keys())}"
+            )
         
     def getScale(self, key):
         return self.getAxis(key)
@@ -1190,13 +1178,12 @@ class PlotItem(GraphicsWidget):
             
     def _plotArray(self, arr, x=None, **kargs):
         if arr.ndim != 1:
-            raise Exception("Array must be 1D to plot (shape is %s)" % arr.shape)
+            raise Exception(f"Array must be 1D to plot (shape is {arr.shape})")
         if x is None:
             x = np.arange(arr.shape[0])
         if x.ndim != 1:
-            raise Exception("X array must be 1D to plot (shape is %s)" % x.shape)
-        c = PlotCurveItem(arr, x=x, **kargs)
-        return c
+            raise Exception(f"X array must be 1D to plot (shape is {x.shape})")
+        return PlotCurveItem(arr, x=x, **kargs)
             
         
         
@@ -1208,22 +1195,19 @@ class PlotItem(GraphicsWidget):
         try:
             xv = arr.xvals(0)
         except:
-            if x is None:
-                xv = np.arange(arr.shape[0])
-            else:
-                xv = x
+            xv = np.arange(arr.shape[0]) if x is None else x
         c = PlotCurveItem(**kargs)
         c.setData(x=xv, y=arr.view(np.ndarray))
-        
+
         if autoLabel:
             name = arr._info[0].get('name', None)
             units = arr._info[0].get('units', None)
             self.setLabel('bottom', text=name, units=units)
-            
+
             name = arr._info[1].get('name', None)
             units = arr._info[1].get('units', None)
             self.setLabel('left', text=name, units=units)
-            
+
         return c
 
       

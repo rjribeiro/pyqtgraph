@@ -66,8 +66,8 @@ t.start(50)
 #updateData()
 
 ## Multiple parameterized plots--we can autogenerate averages for these.
-for i in range(0, 5):
-    for j in range(0, 3):
+for i in range(5):
+    for j in range(3):
         yd, xd = rand(10000)
         pw2.plot(y=yd*(j+1), x=xd, params={'iter': i, 'val': j})
 

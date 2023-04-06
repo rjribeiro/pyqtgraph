@@ -82,26 +82,22 @@ class Parallelize(object):
         
     def __enter__(self):
         self.proc = None
-        if self.workers == 1: 
-            return self.runSerial()
-        else:
-            return self.runParallel()
+        return self.runSerial() if self.workers == 1 else self.runParallel()
     
     def __exit__(self, *exc_info):
         
         if self.proc is not None:  ## worker 
             exceptOccurred = exc_info[0] is not None ## hit an exception during processing.
-                
+
             try:
                 if exceptOccurred:
                     sys.excepthook(*exc_info)
             finally:
                 #print os.getpid(), 'exit'
                 os._exit(1 if exceptOccurred else 0)
-                
-        else:  ## parent
-            if self.showProgress:
-                self.progressDlg.__exit__(None, None, None)
+
+        elif self.showProgress:
+            self.progressDlg.__exit__(None, None, None)
 
     def runSerial(self):
         if self.showProgress:
@@ -113,14 +109,14 @@ class Parallelize(object):
     
     def runParallel(self):
         self.childs = []
-        
+
         ## break up tasks into one set per worker
         workers = self.workers
-        chunks = [[] for i in xrange(workers)]
+        chunks = [[] for _ in xrange(workers)]
         i = 0
         for i in range(len(self.tasks)):
             chunks[i%workers].append(self.tasks[i])
-        
+
         ## fork and assign tasks to each worker
         for i in range(workers):
             proc = ForkedProcess(target=None, preProxy=self.kwds, randomReseed=self.reseed)
@@ -129,20 +125,20 @@ class Parallelize(object):
                 return Tasker(self, proc, chunks[i], proc.forkedProxies)
             else:
                 self.childs.append(proc)
-        
+
         ## Keep track of the progress of each worker independently.
         self.progress = dict([(ch.childPid, []) for ch in self.childs])
         ## for each child process, self.progress[pid] is a list
         ## of task indexes. The last index is the task currently being
         ## processed; all others are finished.
-            
-            
+
+
         try:
             if self.showProgress:
                 self.progressDlg.__enter__()
                 self.progressDlg.setMaximum(len(self.tasks))
             ## process events from workers until all have exited.
-                
+
             activeChilds = self.childs[:]
             self.exitCodes = []
             pollInterval = 0.01
@@ -173,21 +169,21 @@ class Parallelize(object):
                                 #print "Ignored system call interruption"
                             else:
                                 raise
-                    
+
                     #print [ch.childPid for ch in activeChilds]
-                    
+
                 if self.showProgress and self.progressDlg.wasCanceled():
                     for ch in activeChilds:
                         ch.kill()
                     raise CanceledError()
-                    
+
                 ## adjust polling interval--prefer to get exactly 1 event per poll cycle.
                 if waitingChildren > 1:
                     pollInterval *= 0.7
                 elif waitingChildren == 0:
                     pollInterval /= 0.7
                 pollInterval = max(min(pollInterval, 0.5), 0.0005) ## but keep it within reasonable limits
-                
+
                 time.sleep(pollInterval)
         finally:
             if self.showProgress:
@@ -202,25 +198,23 @@ class Parallelize(object):
     
     @staticmethod
     def suggestedWorkerCount():
-        if 'linux' in sys.platform:
-            ## I think we can do a little better here..
-            ## cpu_count does not consider that there is little extra benefit to using hyperthreaded cores.
-            try:
-                cores = {}
-                pid = None
-                
-                for line in open('/proc/cpuinfo'):
-                    m = re.match(r'physical id\s+:\s+(\d+)', line)
-                    if m is not None:
-                        pid = m.groups()[0]
-                    m = re.match(r'cpu cores\s+:\s+(\d+)', line)
-                    if m is not None:
-                        cores[pid] = int(m.groups()[0])
-                return sum(cores.values())
-            except:
-                return multiprocessing.cpu_count()
-                
-        else:
+        if 'linux' not in sys.platform:
+            return multiprocessing.cpu_count()
+        ## I think we can do a little better here..
+        ## cpu_count does not consider that there is little extra benefit to using hyperthreaded cores.
+        try:
+            cores = {}
+            pid = None
+
+            for line in open('/proc/cpuinfo'):
+                m = re.match(r'physical id\s+:\s+(\d+)', line)
+                if m is not None:
+                    pid = m.groups()[0]
+                m = re.match(r'cpu cores\s+:\s+(\d+)', line)
+                if m is not None:
+                    cores[pid] = int(m.groups()[0])
+            return sum(cores.values())
+        except:
             return multiprocessing.cpu_count()
         
     def _taskStarted(self, pid, i, **kwds):
@@ -229,9 +223,8 @@ class Parallelize(object):
         if self.showProgress:
             if len(self.progress[pid]) > 0:
                 self.progressDlg += 1
-            if pid == os.getpid():  ## single-worker process
-                if self.progressDlg.wasCanceled():
-                    raise CanceledError()
+            if pid == os.getpid() and self.progressDlg.wasCanceled():
+                raise CanceledError()
         self.progress[pid].append(i)
     
     

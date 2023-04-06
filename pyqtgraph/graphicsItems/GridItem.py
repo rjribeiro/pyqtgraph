@@ -47,7 +47,7 @@ class GridItem(UIGraphicsItem):
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter()
         p.begin(self.picture)
-        
+
         dt = fn.invertQTransform(self.viewTransform())
         vr = self.getViewWidget().rect()
         unit = self.pixelWidth(), self.pixelHeight()
@@ -55,9 +55,9 @@ class GridItem(UIGraphicsItem):
         lvr = self.boundingRect()
         ul = np.array([lvr.left(), lvr.top()])
         br = np.array([lvr.right(), lvr.bottom()])
-        
+
         texts = []
-        
+
         if ul[1] > br[1]:
             x = ul[1]
             ul[1] = br[1]
@@ -75,15 +75,15 @@ class GridItem(UIGraphicsItem):
             #print "  dist", dist
             #print "  d", d
             #print "  nl", nl
-            for ax in range(0,2):  ## Draw grid for both axes
+            for ax in range(2):  ## Draw grid for both axes
                 ppl = dim[ax] / nl[ax]
                 c = np.clip(3.*(ppl-3), 0., 30.)
-                linePen = QtGui.QPen(QtGui.QColor(255, 255, 255, c)) 
-                textPen = QtGui.QPen(QtGui.QColor(255, 255, 255, c*2)) 
+                linePen = QtGui.QPen(QtGui.QColor(255, 255, 255, c))
+                textPen = QtGui.QPen(QtGui.QColor(255, 255, 255, c*2))
                 #linePen.setCosmetic(True)
                 #linePen.setWidth(1)
                 bx = (ax+1) % 2
-                for x in range(0, int(nl[ax])):
+                for x in range(int(nl[ax])):
                     linePen.setCosmetic(False)
                     if ax == 0:
                         linePen.setWidthF(self.pixelWidth())

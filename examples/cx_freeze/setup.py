@@ -18,10 +18,7 @@ if sys.version[0] == '2':
     # causes syntax error on py2
     excludes.append('PyQt4.uic.port_v3')
 
-base = None
-if sys.platform == "win32":
-    base = "Win32GUI"
-
+base = "Win32GUI" if sys.platform == "win32" else None
 build_exe_options = {'excludes': excludes,
     'includes':includes, 'include_msvcr':True,
     'compressed':True, 'copy_dependent_files':True, 'create_shared_zip':True,

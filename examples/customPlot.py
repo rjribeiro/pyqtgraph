@@ -22,15 +22,15 @@ class DateAxis(pg.AxisItem):
             string = '%H:%M:%S'
             label1 = '%b %d -'
             label2 = ' %b %d, %Y'
-        elif rng >= 3600*24 and rng < 3600*24*30:
+        elif rng < 3600 * 24 * 30:
             string = '%d'
             label1 = '%b - '
             label2 = '%b, %Y'
-        elif rng >= 3600*24*30 and rng < 3600*24*30*24:
+        elif rng < 3600 * 24 * 30 * 24:
             string = '%b'
             label1 = '%Y -'
             label2 = ' %Y'
-        elif rng >=3600*24*30*24:
+        else:
             string = '%Y'
             label1 = ''
             label2 = ''

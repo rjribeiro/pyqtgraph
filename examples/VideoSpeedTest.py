@@ -7,6 +7,7 @@ is used by the view widget
 """
 
 
+
 import initExample ## Add path to library (just for examples; you do not need this)
 
 
@@ -21,7 +22,7 @@ elif USE_PYQT5:
     import VideoTemplate_pyqt5 as VideoTemplate
 else:
     import VideoTemplate_pyqt as VideoTemplate
-    
+
 
 #QtGui.QApplication.setGraphicsSystem('raster')
 app = QtGui.QApplication([])
@@ -36,7 +37,7 @@ try:
     from pyqtgraph.widgets.RawImageWidget import RawImageGLWidget
 except ImportError:
     ui.rawGLRadio.setEnabled(False)
-    ui.rawGLRadio.setText(ui.rawGLRadio.text() + " (OpenGL not available)")
+    ui.rawGLRadio.setText(f"{ui.rawGLRadio.text()} (OpenGL not available)")
 else:
     ui.rawGLImg = RawImageGLWidget()
     ui.stack.addWidget(ui.rawGLImg)
@@ -57,10 +58,7 @@ LUT = None
 def updateLUT():
     global LUT, ui
     dtype = ui.dtypeCombo.currentText()
-    if dtype == 'uint8':
-        n = 256
-    else:
-        n = 4096
+    n = 256 if dtype == 'uint8' else 4096
     LUT = ui.gradient.getLookupTable(n, alpha=ui.alphaCheck.isChecked())
 ui.gradient.sigGradientChanged.connect(updateLUT)
 updateLUT()
@@ -150,11 +148,7 @@ lastTime = ptime.time()
 fps = None
 def update():
     global ui, ptr, lastTime, fps, LUT, img
-    if ui.lutCheck.isChecked():
-        useLut = LUT
-    else:
-        useLut = None
-        
+    useLut = LUT if ui.lutCheck.isChecked() else None
     downsample = ui.downsampleCheck.isChecked()
 
     if ui.scaleCheck.isChecked():
@@ -178,7 +172,7 @@ def update():
         img.setImage(data[ptr%data.shape[0]], autoLevels=False, levels=useScale, lut=useLut, autoDownsample=downsample)
         ui.stack.setCurrentIndex(0)
         #img.setImage(data[ptr%data.shape[0]], autoRange=False)
-        
+
     ptr += 1
     now = ptime.time()
     dt = now - lastTime

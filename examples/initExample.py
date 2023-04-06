@@ -30,16 +30,16 @@ else:
     from pyqtgraph.Qt import QtGui
 
 import pyqtgraph as pg    
-    
+
 ## Force use of a specific graphics system
 use_gs = 'default'
 for gs in ['raster', 'native', 'opengl']:
     if gs in sys.argv:
         use_gs = gs
-        QtGui.QApplication.setGraphicsSystem(gs)
+        QtGui.QApplication.setGraphicsSystem(use_gs)
         break
 
-print("Using %s (%s graphics system)" % (pg.Qt.QT_LIB, use_gs))
+print(f"Using {pg.Qt.QT_LIB} ({use_gs} graphics system)")
 
 ## Enable fault handling to give more helpful error messages on crash. 
 ## Only available in python 3.3+

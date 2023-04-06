@@ -14,13 +14,11 @@ class GlassDB:
         path = os.path.dirname(__file__)
         fh = gzip.open(os.path.join(path, 'schott_glasses.csv.gz'), 'rb')
         r = csv.reader(map(str, fh.readlines()))
-        lines = [x for x in r]
+        lines = list(r)
         self.data = {}
         header = lines[0]
         for l in lines[1:]:
-            info = {}
-            for i in range(1, len(l)):
-                info[header[i]] = l[i]
+            info = {header[i]: l[i] for i in range(1, len(l))}
             self.data[l[0]] = info
         self.data['Corning7980'] = {   ## Thorlabs UV fused silica--not in schott catalog.
             'B1': 0.68374049400,
@@ -32,7 +30,7 @@ class GlassDB:
             'TAUI25/250': 0.95,    ## transmission data is fabricated, but close.
             'TAUI25/1400': 0.98,
         }
-        
+
         for k in self.data:
             self.data[k]['ior_cache'] = {}
             
@@ -62,10 +60,7 @@ class GlassDB:
             curve[0][i] = keys[i]
             key = 'TAUI25/%d' % keys[i]
             val = data[key]
-            if val == '':
-                val = 0
-            else:
-                val = float(val)
+            val = 0 if val == '' else float(val)
             curve[1][i] = val
         return curve
             
@@ -85,8 +80,7 @@ def wlPen(wl):
         val = wl * 1.0/400.
     #print hue, val
     color = pg.hsvColor(hue, 1.0, val)
-    pen = pg.mkPen(color)
-    return pen
+    return pg.mkPen(color)
 
 
 class ParamObj(object):
@@ -128,16 +122,15 @@ class Optic(pg.GraphicsObject, ParamObj):
         self.gitem = gitem
         self.surfaces = gitem.surfaces
         gitem.setParentItem(self)
-        
+
         self.roi = pg.ROI([0,0], [1,1])
         self.roi.addRotateHandle([1, 1], [0.5, 0.5])
         self.roi.setParentItem(self)
-        
+
         defaults = {
-            'pos': Point(0,0),
+            'pos': Point(0, 0),
             'angle': 0,
-        }
-        defaults.update(params)
+        } | params
         self._ior_cache = {}
         self.roi.sigRegionChanged.connect(self.roiChanged)
         self.setParams(**defaults)
@@ -195,17 +188,16 @@ class Lens(Optic):
     def __init__(self, **params):
         defaults = {
             'dia': 25.4,  ## diameter of lens
-            'r1': 50.,    ## positive means convex, use 0 for planar
-            'r2': 0,   ## negative means convex
+            'r1': 50.0,  ## positive means convex, use 0 for planar
+            'r2': 0,  ## negative means convex
             'd': 4.0,
             'glass': 'N-BK7',
             'reflect': False,
-        }
-        defaults.update(params)
+        } | params
         d = defaults.pop('d')
         defaults['x1'] = -d/2.
         defaults['x2'] = d/2.
-        
+
         gitem = CircularSolid(brush=(100, 100, 130, 100), **defaults)
         Optic.__init__(self, gitem, **defaults)
         
@@ -274,8 +266,7 @@ class Mirror(Optic):
             'r1': 0,
             'r2': 0,
             'd': 0.01,
-        }
-        defaults.update(params)
+        } | params
         d = defaults.pop('d')
         defaults['x1'] = -d/2.
         defaults['x2'] = d/2.
@@ -309,19 +300,18 @@ class CircularSolid(pg.GraphicsObject, ParamObj):
            r1,r2 - radius of curvature
            d1,d2 - diameter of optic
         """
-        defaults = dict(x1=-2, r1=100, d1=25.4, x2=2, r2=100, d2=25.4)
-        defaults.update(opts)
+        defaults = dict(x1=-2, r1=100, d1=25.4, x2=2, r2=100, d2=25.4) | opts
         ParamObj.__init__(self)
         self.surfaces = [CircleSurface(defaults['r1'], defaults['d1']), CircleSurface(-defaults['r2'], defaults['d2'])]
         pg.GraphicsObject.__init__(self)
         for s in self.surfaces:
             s.setParentItem(self)
-        
+
         if pen is None:
             self.pen = pg.mkPen((220,220,255,200), width=1, cosmetic=True)
         else:
             self.pen = pg.mkPen(pen)
-        
+
         if brush is None: 
             self.brush = pg.mkBrush((230, 230, 255, 30))
         else:
@@ -417,13 +407,10 @@ class CircleSurface(pg.GraphicsObject):
         #print "  ray: ", p, dir
         p = p - Point(r, 0)  ## move position so center of circle is at 0,0
         #print "  adj: ", p, r
-        
+
         if r == 0:
             #print "  flat"
-            if dir[0] == 0:
-                y = 0
-            else:
-                y = p[1] - p[0] * dir[1]/dir[0]
+            y = 0 if dir[0] == 0 else p[1] - p[0] * dir[1]/dir[0]
             if abs(y) > h:
                 return None, None
             else:
@@ -440,12 +427,7 @@ class CircleSurface(pg.GraphicsObject):
             if disc < 0:
                 return None, None
             disc2 = disc**0.5
-            if dy < 0:
-                sgn = -1
-            else:
-                sgn = 1
-            
-        
+            sgn = -1 if dy < 0 else 1
             br = self.path.boundingRect()
             x1 = (D*dy + sgn*dx*disc2) * idr2
             y1 = (-D*dx + abs(dy)*disc2) * idr2
@@ -457,18 +439,16 @@ class CircleSurface(pg.GraphicsObject):
                 pt = Point(x2, y2)
                 if not br.contains(x2+r, y2):
                     return None, None
-                    raise Exception("No intersection!")
-                
             norm = np.arctan2(pt[1], pt[0])
             if r < 0:
                 norm += np.pi
             #print "  norm:", norm*180/3.1415
             dp = p - pt
             #print "  dp:", dp
-            ang = np.arctan2(dp[1], dp[0]) 
+            ang = np.arctan2(dp[1], dp[0])
             #print "  ang:", ang*180/3.1415
             #print "  ai:", (ang-norm)*180/3.1415
-            
+
             #print "  intersection:", pt
             return pt + Point(r, 0), ang-norm
 
@@ -489,15 +469,15 @@ class Ray(pg.GraphicsObject, ParamObj):
         self.params = {}
         pg.GraphicsObject.__init__(self)
         self.children = []
-        parent = params.get('parent', None)
+        parent = params.get('parent')
         if parent is not None:
             defaults['start'] = parent['end']
             defaults['wl'] = parent['wl']
             self['ior'] = parent['ior']
             self['dir'] = parent['dir']
             parent.addChild(self)
-        
-        defaults.update(params)
+
+        defaults |= params
         defaults['dir'] = Point(defaults['dir'])
         self.setParams(**defaults)
         self.mkPath()
@@ -521,11 +501,10 @@ class Ray(pg.GraphicsObject, ParamObj):
         dir = self['dir']
         if relativeTo is None:
             return pos, dir
-        else:
-            trans = self.itemTransform(relativeTo)[0]
-            p1 = trans.map(pos)
-            p2 = trans.map(pos + dir)
-            return Point(p1), Point(p2-p1)
+        trans = self.itemTransform(relativeTo)[0]
+        p1 = trans.map(pos)
+        p2 = trans.map(pos + dir)
+        return Point(p1), Point(p2-p1)
             
             
     def setEnd(self, end):

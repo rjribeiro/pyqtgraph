@@ -126,10 +126,7 @@ class LinearRegionItem(GraphicsObject):
     def getRegion(self):
         """Return the values at the edges of the region."""
         r = (self.lines[0].value(), self.lines[1].value())
-        if self.swapMode == 'sort':
-            return (min(r), max(r))
-        else:
-            return r
+        return (min(r), max(r)) if self.swapMode == 'sort' else r
 
     def setRegion(self, rgn):
         """Set the values for the edges of the region.
@@ -289,8 +286,5 @@ class LinearRegionItem(GraphicsObject):
         if self.mouseHovering == hover:
             return
         self.mouseHovering = hover
-        if hover:
-            self.currentBrush = self.hoverBrush
-        else:
-            self.currentBrush = self.brush
+        self.currentBrush = self.hoverBrush if hover else self.brush
         self.update()

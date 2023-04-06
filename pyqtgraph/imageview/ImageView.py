@@ -118,28 +118,22 @@ class ImageView(QtGui.QWidget):
         self.ui = Ui_Form()
         self.ui.setupUi(self)
         self.scene = self.ui.graphicsView.scene()
-        
+
         self.ignoreTimeLine = False
-        
-        if view is None:
-            self.view = ViewBox()
-        else:
-            self.view = view
+
+        self.view = ViewBox() if view is None else view
         self.ui.graphicsView.setCentralItem(self.view)
         self.view.setAspectLocked(True)
         self.view.invertY()
-        
-        if imageItem is None:
-            self.imageItem = ImageItem()
-        else:
-            self.imageItem = imageItem
+
+        self.imageItem = ImageItem() if imageItem is None else imageItem
         self.view.addItem(self.imageItem)
         self.currentIndex = 0
-        
+
         self.ui.histogram.setImageItem(self.imageItem)
-        
+
         self.menu = None
-        
+
         self.ui.normGroup.hide()
 
         self.roi = PlotROI(10)
@@ -158,17 +152,17 @@ class ImageView(QtGui.QWidget):
         self.ui.roiPlot.addItem(self.timeLine)
         self.ui.splitter.setSizes([self.height()-35, 35])
         self.ui.roiPlot.hideAxis('left')
-        
+
         self.keysPressed = {}
         self.playTimer = QtCore.QTimer()
         self.playRate = 0
         self.lastPlayTime = 0
-        
+
         self.normRgn = LinearRegionItem()
         self.normRgn.setZValue(0)
         self.ui.roiPlot.addItem(self.normRgn)
         self.normRgn.hide()
-            
+
         ## wrap functions from view box
         for fn in ['addItem', 'removeItem']:
             setattr(self, fn, getattr(self.view, fn))
@@ -189,15 +183,15 @@ class ImageView(QtGui.QWidget):
         self.ui.normFrameCheck.clicked.connect(self.updateNorm)
         self.ui.normTimeRangeCheck.clicked.connect(self.updateNorm)
         self.playTimer.timeout.connect(self.timeout)
-        
+
         self.normProxy = SignalProxy(self.normRgn.sigRegionChanged, slot=self.updateNorm)
         self.normRoi.sigRegionChangeFinished.connect(self.updateNorm)
-        
-        self.ui.roiPlot.registerPlot(self.name + '_ROI')
+
+        self.ui.roiPlot.registerPlot(f'{self.name}_ROI')
         self.view.register(self.name)
-        
+
         self.noRepeatKeys = [QtCore.Qt.Key_Right, QtCore.Qt.Key_Left, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down, QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown]
-        
+
         self.roiClicked() ## initialize roi plot to correct shape / visibility
 
     def setImage(self, img, autoRange=True, autoLevels=True, levels=None, axes=None, xvals=None, pos=None, scale=None, transform=None, autoHistogramRange=True):
@@ -239,25 +233,25 @@ class ImageView(QtGui.QWidget):
         
         """
         profiler = debug.Profiler()
-        
+
         if hasattr(img, 'implements') and img.implements('MetaArray'):
             img = img.asarray()
-        
+
         if not isinstance(img, np.ndarray):
             required = ['dtype', 'max', 'min', 'ndim', 'shape', 'size']
-            if not all([hasattr(img, attr) for attr in required]):
+            if not all(hasattr(img, attr) for attr in required):
                 raise TypeError("Image must be NumPy array or any object "
                                 "that provides compatible attributes/methods:\n"
                                 "  %s" % str(required))
-        
+
         self.image = img
         self.imageDisp = None
-        
+
         profiler()
-        
+
         if axes is None:
             x,y = (0, 1) if self.imageItem.axisOrder == 'col-major' else (1, 0)
-            
+
             if img.ndim == 2:
                 self.axes = {'t': None, 'x': x, 'y': y, 'c': None}
             elif img.ndim == 3:
@@ -270,16 +264,16 @@ class ImageView(QtGui.QWidget):
                 # Even more ambiguous; just assume the default
                 self.axes = {'t': 0, 'x': x+1, 'y': y+1, 'c': 3}
             else:
-                raise Exception("Can not interpret image with dimensions %s" % (str(img.shape)))
+                raise Exception(f"Can not interpret image with dimensions {str(img.shape)}")
         elif isinstance(axes, dict):
             self.axes = axes.copy()
-        elif isinstance(axes, list) or isinstance(axes, tuple):
+        elif isinstance(axes, (list, tuple)):
             self.axes = {}
             for i in range(len(axes)):
                 self.axes[axes[i]] = i
         else:
             raise Exception("Can not interpret axis specification %s. Must be like {'t': 2, 'x': 0, 'y': 1} or ('t', 'x', 'y', 'c')" % (str(axes)))
-            
+
         for x in ['t', 'x', 'y', 'c']:
             self.axes[x] = self.axes.get(x, None)
         axes = self.axes
@@ -303,7 +297,7 @@ class ImageView(QtGui.QWidget):
             self.autoLevels()
         if levels is not None:  ## this does nothing since getProcessedImage sets these values again.
             self.setLevels(*levels)
-            
+
         if self.ui.roiBtn.isChecked():
             self.roiChanged()
 
@@ -325,8 +319,6 @@ class ImageView(QtGui.QWidget):
                 stop = 1
             for s in [self.timeLine, self.normRgn]:
                 s.setBounds([start, stop])
-        #else:
-            #self.ui.roiPlot.hide()
         profiler()
 
         self.imageItem.resetTransform()
