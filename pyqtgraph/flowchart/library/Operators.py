@@ -48,8 +48,10 @@ class BinOpNode(CtrlNode):
             fn = getattr(args['A'], self.fn)
         out = fn(args['B'])
         if out is NotImplemented:
-            raise Exception("Operation %s not implemented between %s and %s" % (fn, str(type(args['A'])), str(type(args['B']))))
-        
+            raise Exception(
+                f"Operation {fn} not implemented between {str(type(args['A']))} and {str(type(args['B']))}"
+            )
+
         # Coerce dtype if requested
         typ = self.stateGroup.state()['outputType']
         if typ == 'no change':
@@ -60,7 +62,7 @@ class BinOpNode(CtrlNode):
             out = out.astype(args['B'].dtype)
         else:
             out = out.astype(typ)
-            
+
         #print "     ", fn, out
         return {'Out': out}
 

@@ -30,12 +30,8 @@ class UIGraphicsItem(GraphicsObject):
         """
         GraphicsObject.__init__(self, parent)
         self.setFlag(self.ItemSendsScenePositionChanges)
-            
-        if bounds is None:
-            self._bounds = QtCore.QRectF(0, 0, 1, 1)
-        else:
-            self._bounds = bounds
-            
+
+        self._bounds = QtCore.QRectF(0, 0, 1, 1) if bounds is None else bounds
         self._boundingRect = None
         self._updateView()
         

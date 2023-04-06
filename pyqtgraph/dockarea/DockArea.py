@@ -46,25 +46,23 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
         """
         if dock is None:
             dock = Dock(**kwds)
-        
-        
+
+
         ## Determine the container to insert this dock into.
         ## If there is no neighbor, then the container is the top.
         if relativeTo is None or relativeTo is self:
-            if self.topContainer is None:
-                container = self
-                neighbor = None
-            else:
-                container = self.topContainer
-                neighbor = None
+            container = self if self.topContainer is None else self.topContainer
+            neighbor = None
         else:
             if isinstance(relativeTo, basestring):
                 relativeTo = self.docks[relativeTo]
             container = self.getContainer(relativeTo)
             if container is None:
-                raise TypeError("Dock %s is not contained in a DockArea; cannot add another dock relative to it." % relativeTo)
+                raise TypeError(
+                    f"Dock {relativeTo} is not contained in a DockArea; cannot add another dock relative to it."
+                )
             neighbor = relativeTo
-        
+
         ## what container type do we need?
         neededContainer = {
             'bottom': 'vertical',
@@ -74,12 +72,12 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
             'above': 'tab',
             'below': 'tab'
         }[position]
-        
+
         ## Can't insert new containers into a tab container; insert outside instead.
         if neededContainer != container.type() and container.type() == 'tab':
             neighbor = container
             container = container.container()
-            
+
         ## Decide if the container we have is suitable.
         ## If not, insert a new container inside.
         if neededContainer != container.type():
@@ -87,7 +85,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
                 container = self.addContainer(neededContainer, self.topContainer)
             else:
                 container = self.addContainer(neededContainer, neighbor)
-            
+
         ## Insert the new dock before/after its neighbor
         insertPos = {
             'bottom': 'after',
@@ -103,7 +101,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
         self.docks[dock.name()] = dock
         if old is not None:
             old.apoptose()
-        
+
         return dock
         
     def moveDock(self, dock, position, neighbor):
@@ -116,9 +114,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
         self.addDock(dock, position, neighbor)
         
     def getContainer(self, obj):
-        if obj is None:
-            return self
-        return obj.container()
+        return self if obj is None else obj.container()
         
     def makeContainer(self, typ):
         if typ == 'vertical':
@@ -152,9 +148,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
         self.raiseOverlay()
         
     def count(self):
-        if self.topContainer is None:
-            return 0
-        return 1
+        return 0 if self.topContainer is None else 1
         
     def resizeEvent(self, ev):
         self.resizeOverlay(self.size())
@@ -202,11 +196,8 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
     def childState(self, obj):
         if isinstance(obj, Dock):
             return ('dock', obj.name(), {})
-        else:
-            childs = []
-            for i in range(obj.count()):
-                childs.append(self.childState(obj.widget(i)))
-            return (obj.type(), childs, obj.saveState())
+        childs = [self.childState(obj.widget(i)) for i in range(obj.count())]
+        return (obj.type(), childs, obj.saveState())
         
     def restoreState(self, state, missing='error', extra='bottom'):
         """
@@ -264,7 +255,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
                 del docks[contents]
             except KeyError:
                 if missing == 'error':
-                    raise Exception('Cannot restore dock state; no dock with name "%s"' % contents)
+                    raise Exception(f'Cannot restore dock state; no dock with name "{contents}"')
                 elif missing == 'create':
                     obj = Dock(name=contents)
                 elif missing == 'ignore':
@@ -274,10 +265,10 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
 
         else:
             obj = self.makeContainer(typ)
-            
+
         root.insert(obj, 'after')
         #print pfx+"Add:", obj, " -> ", root
-        
+
         if typ != 'dock':
             for o in contents:
                 self.buildFromState(o, docks, obj, depth+1, missing=missing)
@@ -289,7 +280,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
     def findAll(self, obj=None, c=None, d=None):
         if obj is None:
             obj = self.topContainer
-        
+
         ## check all temp areas first
         if c is None:
             c = []
@@ -297,8 +288,8 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
             for a in self.tempAreas:
                 c1, d1 = a.findAll()
                 c.extend(c1)
-                d.update(d1)
-        
+                d |= d1
+
         if isinstance(obj, Dock):
             d[obj.name()] = obj
         elif obj is not None:
@@ -342,7 +333,7 @@ class DockArea(Container, QtGui.QWidget, DockDrop):
         # for debugging
         if state is None:
             state = self.saveState()
-        print("=== %s dock area ===" % name)
+        print(f"=== {name} dock area ===")
         if state['main'] is None:
             print("   (empty)")
         else:

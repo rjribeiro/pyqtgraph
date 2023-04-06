@@ -18,22 +18,22 @@ class ScaleBar(GraphicsObject, GraphicsWidgetAnchor):
         GraphicsWidgetAnchor.__init__(self)
         self.setFlag(self.ItemHasNoContents)
         self.setAcceptedMouseButtons(QtCore.Qt.NoButton)
-        
+
         if brush is None:
             brush = getConfigOption('foreground')
         self.brush = fn.mkBrush(brush)
         self.pen = fn.mkPen(pen)
         self._width = width
         self.size = size
-        if offset == None:
+        if offset is None:
             offset = (0,0)
         self.offset = offset
-        
+
         self.bar = QtGui.QGraphicsRectItem()
         self.bar.setPen(self.pen)
         self.bar.setBrush(self.brush)
         self.bar.setParentItem(self)
-        
+
         self.text = TextItem(text=fn.siFormat(size, suffix=suffix), anchor=(0.5,1))
         self.text.setParentItem(self)
 

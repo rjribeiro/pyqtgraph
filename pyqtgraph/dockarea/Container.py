@@ -17,10 +17,7 @@ class Container(object):
         
     def containerChanged(self, c):
         self._container = c
-        if c is None:
-            self.area = None
-        else:
-            self.area = c.area
+        self.area = None if c is None else c.area
 
     def type(self):
         return None
@@ -32,17 +29,14 @@ class Container(object):
             # remove from existing parent first
             n.setParent(None)
         if neighbor is None:
-            if pos == 'before':
-                index = 0
-            else:
-                index = self.count()
+            index = 0 if pos == 'before' else self.count()
         else:
             index = self.indexOf(neighbor)
             if index == -1:
                 index = 0
             if pos == 'after':
                 index += 1
-                
+
         for n in new:
             #print "insert", n, " -> ", self, index
             self._insertItem(n, index)
@@ -122,7 +116,7 @@ class SplitContainer(Container, QtGui.QSplitter):
         
     def saveState(self):
         sizes = self.sizes()
-        if all([x == 0 for x in sizes]):
+        if all(x == 0 for x in sizes):
             sizes = [10] * len(sizes)
         return {'sizes': sizes}
         
@@ -164,12 +158,9 @@ class HContainer(SplitContainer):
             #print "  child", self.widget(i), wx, wy
         self.setStretch(x, y)
         #print sizes
-        
+
         tot = float(sum(sizes))
-        if tot == 0:
-            scale = 1.0
-        else:
-            scale = self.width() / tot
+        scale = 1.0 if tot == 0 else self.width() / tot
         self.setSizes([int(s*scale) for s in sizes])
         
 
@@ -197,10 +188,7 @@ class VContainer(SplitContainer):
 
         #print sizes
         tot = float(sum(sizes))
-        if tot == 0:
-            scale = 1.0
-        else:
-            scale = self.height() / tot
+        scale = 1.0 if tot == 0 else self.height() / tot
         self.setSizes([int(s*scale) for s in sizes])
 
 

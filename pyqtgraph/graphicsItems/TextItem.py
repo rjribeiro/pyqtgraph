@@ -176,18 +176,14 @@ class TextItem(GraphicsObject):
         # This is similar to setting ItemIgnoresTransformations = True, but 
         # does not break mouse interaction and collision detection.
         p = self.parentItem()
-        if p is None:
-            pt = QtGui.QTransform()
-        else:
-            pt = p.sceneTransform()
-        
+        pt = QtGui.QTransform() if p is None else p.sceneTransform()
         if pt == self._lastTransform:
             return
 
         t = pt.inverted()[0]
         # reset translation
         t.setMatrix(t.m11(), t.m12(), t.m13(), t.m21(), t.m22(), t.m23(), 0, 0, t.m33())
-        
+
         # apply rotation
         angle = -self.angle
         if self.rotateAxis is not None:
@@ -195,9 +191,9 @@ class TextItem(GraphicsObject):
             a = np.arctan2(d.y(), d.x()) * 180 / np.pi
             angle += a
         t.rotate(angle)
-        
+
         self.setTransform(t)
-        
+
         self._lastTransform = pt
-        
+
         self.updateTextPos()

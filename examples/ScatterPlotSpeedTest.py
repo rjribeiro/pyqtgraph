@@ -44,10 +44,7 @@ fps = None
 def update():
     global curve, data, ptr, p, lastTime, fps
     p.clear()
-    if ui.randCheck.isChecked():
-        size = sizeArray
-    else:
-        size = ui.sizeSpin.value()
+    size = sizeArray if ui.randCheck.isChecked() else ui.sizeSpin.value()
     curve = pg.ScatterPlotItem(x=data[ptr%50], y=data[(ptr+1)%50], 
                                pen='w', brush='b', size=size, 
                                pxMode=ui.pixelModeCheck.isChecked())

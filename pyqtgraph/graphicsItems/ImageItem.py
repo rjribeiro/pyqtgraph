@@ -245,9 +245,11 @@ class ImageItem(GraphicsObject):
             if self.image is None or image.dtype != self.image.dtype:
                 self._effectiveLut = None
             self.image = image
-            if self.image.shape[0] > 2**15-1 or self.image.shape[1] > 2**15-1:
-                if 'autoDownsample' not in kargs:
-                    kargs['autoDownsample'] = True
+            if (
+                self.image.shape[0] > 2**15 - 1
+                or self.image.shape[1] > 2**15 - 1
+            ) and 'autoDownsample' not in kargs:
+                kargs['autoDownsample'] = True
             if shapeChanged:
                 self.prepareGeometryChange()
                 self.informViewBoundsChanged()
@@ -255,10 +257,7 @@ class ImageItem(GraphicsObject):
         profile()
 
         if autoLevels is None:
-            if 'levels' in kargs:
-                autoLevels = False
-            else:
-                autoLevels = True
+            autoLevels = 'levels' not in kargs
         if autoLevels:
             img = self.image
             while img.size > 2**16:
@@ -332,14 +331,9 @@ class ImageItem(GraphicsObject):
         return nanmin(data), nanmax(data)
 
     def updateImage(self, *args, **kargs):
-        ## used for re-rendering qimage from self.image.
-        
-        ## can we make any assumptions here that speed things up?
-        ## dtype, range, size are all the same?
         defaults = {
             'autoLevels': False,
-        }
-        defaults.update(kargs)
+        } | kargs
         return self.setImage(*args, **defaults)
 
     def render(self):
@@ -489,9 +483,7 @@ class ImageItem(GraphicsObject):
     def getPixmap(self):
         if self.qimage is None:
             self.render()
-            if self.qimage is None:
-                return None
-        return QtGui.QPixmap.fromImage(self.qimage)
+        return None if self.qimage is None else QtGui.QPixmap.fromImage(self.qimage)
     
     def pixelSize(self):
         """return scene-size of a single pixel in the image"""
@@ -514,9 +506,8 @@ class ImageItem(GraphicsObject):
             self.drawAt(ev.pos(), ev)
 
     def mouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
-            if self.raiseContextMenu(ev):
-                ev.accept()
+        if ev.button() == QtCore.Qt.RightButton and self.raiseContextMenu(ev):
+            ev.accept()
         if self.drawKernel is not None and ev.button() == QtCore.Qt.LeftButton:
             self.drawAt(ev.pos(), ev)
 
@@ -542,11 +533,14 @@ class ImageItem(GraphicsObject):
         return self.menu
         
     def hoverEvent(self, ev):
-        if not ev.isExit() and self.drawKernel is not None and ev.acceptDrags(QtCore.Qt.LeftButton):
-            ev.acceptClicks(QtCore.Qt.LeftButton) ## we don't use the click, but we also don't want anyone else to use it.
-            ev.acceptClicks(QtCore.Qt.RightButton)
-        elif not ev.isExit() and self.removable:
-            ev.acceptClicks(QtCore.Qt.RightButton)  ## accept context menu clicks
+        if not ev.isExit():
+            if self.drawKernel is not None and ev.acceptDrags(
+                QtCore.Qt.LeftButton
+            ):
+                ev.acceptClicks(QtCore.Qt.LeftButton) ## we don't use the click, but we also don't want anyone else to use it.
+                ev.acceptClicks(QtCore.Qt.RightButton)
+            elif self.removable:
+                ev.acceptClicks(QtCore.Qt.RightButton)  ## accept context menu clicks
 
     def tabletEvent(self, ev):
         pass
@@ -562,7 +556,7 @@ class ImageItem(GraphicsObject):
         sy = [0,dk.shape[1]]
         tx = [pos[0] - kc[0], pos[0] - kc[0]+ dk.shape[0]]
         ty = [pos[1] - kc[1], pos[1] - kc[1]+ dk.shape[1]]
-        
+
         for i in [0,1]:
             dx1 = -min(0, tx[i])
             dx2 = min(0, self.image.shape[0]-tx[i])
@@ -578,9 +572,9 @@ class ImageItem(GraphicsObject):
         ss = (slice(sx[0],sx[1]), slice(sy[0],sy[1]))
         mask = self.drawMask
         src = dk
-        
+
         if isinstance(self.drawMode, collections.Callable):
-            self.drawMode(dk, self.image, mask, ss, ts, ev)
+            self.drawMode(src, self.image, mask, ss, ts, ev)
         else:
             src = src[ss]
             if self.drawMode == 'set':
@@ -592,7 +586,7 @@ class ImageItem(GraphicsObject):
             elif self.drawMode == 'add':
                 self.image[ts] += src
             else:
-                raise Exception("Unknown draw mode '%s'" % self.drawMode)
+                raise Exception(f"Unknown draw mode '{self.drawMode}'")
             self.updateImage()
         
     def setDrawKernel(self, kernel=None, mask=None, center=(0,0), mode='set'):

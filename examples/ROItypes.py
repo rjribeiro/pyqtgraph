@@ -89,8 +89,14 @@ def updateRoiPlot(roi, data=None):
 
 
 ## Create a variety of different ROI types
-rois = []
-rois.append(pg.TestROI([0,  0], [20, 20], maxBounds=QtCore.QRectF(-10, -10, 230, 140), pen=(0,9)))
+rois = [
+    pg.TestROI(
+        [0, 0],
+        [20, 20],
+        maxBounds=QtCore.QRectF(-10, -10, 230, 140),
+        pen=(0, 9),
+    )
+]
 rois.append(pg.LineROI([0,  0], [20, 20], width=5, pen=(1,9)))
 rois.append(pg.MultiLineROI([[0, 50], [50, 60], [60, 30]], width=5, pen=(2,9)))
 rois.append(pg.EllipseROI([110, 10], [30, 20], pen=(3,9)))

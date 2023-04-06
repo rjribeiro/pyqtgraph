@@ -26,7 +26,6 @@ if os.getenv('TRAVIS') is not None:
             except IOError:
                 if count >= 5:
                     raise
-                pass
     orig_print = builtins.print
     builtins.print = flaky_print
     print("Installed wrapper for flaky print.")
@@ -56,9 +55,9 @@ for frontend in frontends.keys():
     "frontend, f", itertools.product(sorted(list(frontends.keys())), files))
 def test_examples(frontend, f):
     # Test the examples with all available front-ends
-    print('frontend = %s. f = %s' % (frontend, f))
+    print(f'frontend = {frontend}. f = {f}')
     if not frontends[frontend]:
-        pytest.skip('%s is not installed. Skipping tests' % frontend)
+        pytest.skip(f'{frontend} is not installed. Skipping tests')
     utils.testFile(f[0], f[1], utils.sys.executable, frontend)
 
 if __name__ == "__main__":

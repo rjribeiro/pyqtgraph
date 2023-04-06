@@ -31,17 +31,17 @@ class ChainSim(pg.QtCore.QObject):
     def init(self):
         if self.initialized:
             return
-        
+
         assert None not in [self.pos, self.mass, self.links, self.lengths]
-        
+
         if self.fixed is None:
             self.fixed = np.zeros(self.pos.shape[0], dtype=bool)
         if self.push is None:
             self.push = np.ones(self.links.shape[0], dtype=bool)
         if self.pull is None:
             self.pull = np.ones(self.links.shape[0], dtype=bool)
-            
-        
+
+
         # precompute relative masses across links
         l1 = self.links[:,0]
         l2 = self.links[:,1]
@@ -52,9 +52,9 @@ class ChainSim(pg.QtCore.QObject):
         self.mrel1[self.fixed[l2]] = 0
         self.mrel2 = 1.0 - self.mrel1
 
-        for i in range(10):
+        for _ in range(10):
             self.relax(n=10)
-        
+
         self.initialized = True
         
     def makeGraph(self):
@@ -68,14 +68,11 @@ class ChainSim(pg.QtCore.QObject):
     
     def update(self):
         # approximate physics with verlet integration
-        
+
         now = pg.ptime.time()
-        if self.lasttime is None:
-            dt = 0
-        else:
-            dt = now - self.lasttime
+        dt = 0 if self.lasttime is None else now - self.lasttime
         self.lasttime = now
-        
+
         # limit amount of work to be done between frames
         if not relax.COMPILED:
             dt = self.maxTimeStep
@@ -85,22 +82,22 @@ class ChainSim(pg.QtCore.QObject):
 
         # remember fixed positions
         fixedpos = self.pos[self.fixed]
-        
+
         while dt > 0:
             dt1 = min(self.maxTimeStep, dt)
             dt -= dt1
-            
+
             # compute motion since last timestep
             dx = self.pos - self.lastpos
             self.lastpos = self.pos
-            
+
             # update positions for gravity and inertia
             acc = np.array([[0, -5]]) * dt1
             inertia = dx * (self.damping**(dt1/self.mass))[:,np.newaxis]  # with mass-dependent damping
             self.pos = self.pos + inertia + acc
 
             self.pos[self.fixed] = fixedpos  # fixed point constraint
-            
+
             # correct for link constraints
             self.relax(self.relaxPerStep)
         self.stepped.emit()

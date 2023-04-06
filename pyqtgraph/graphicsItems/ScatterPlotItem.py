@@ -360,9 +360,6 @@ class ScatterPlotItem(GraphicsObject):
         ## note that np.empty initializes object fields to None and string fields to ''
 
         self.data[:len(oldData)] = oldData
-        #for i in range(len(oldData)):
-            #oldData[i]['item']._data = self.data[i]  ## Make sure items have proper reference to new array
-
         newData = self.data[len(oldData):]
         newData['size'] = -1  ## indicates to use default size
 
@@ -386,7 +383,7 @@ class ScatterPlotItem(GraphicsObject):
                     elif k in ['x', 'y', 'size', 'symbol', 'brush', 'data']:
                         newData[i][k] = spot[k]
                     else:
-                        raise Exception("Unknown spot parameter: %s" % k)
+                        raise Exception(f"Unknown spot parameter: {k}")
         elif 'y' in kargs:
             newData['x'] = kargs['x']
             newData['y'] = kargs['y']
@@ -399,7 +396,7 @@ class ScatterPlotItem(GraphicsObject):
         ## Set any extra parameters provided in keyword arguments
         for k in ['pen', 'brush', 'symbol', 'size']:
             if k in kargs:
-                setMethod = getattr(self, 'set' + k[0].upper() + k[1:])
+                setMethod = getattr(self, f'set{k[0].upper()}{k[1:]}')
                 setMethod(kargs[k], update=False, dataSet=newData, mask=kargs.get('mask', None))
 
         if 'data' in kargs:
@@ -426,9 +423,7 @@ class ScatterPlotItem(GraphicsObject):
 
     def implements(self, interface=None):
         ints = ['plotData']
-        if interface is None:
-            return ints
-        return interface in ints
+        return ints if interface is None else interface in ints
 
     def name(self):
         return self.opts.get('name', None)
@@ -441,7 +436,7 @@ class ScatterPlotItem(GraphicsObject):
         update = kargs.pop('update', True)
         dataSet = kargs.pop('dataSet', self.data)
 
-        if len(args) == 1 and (isinstance(args[0], np.ndarray) or isinstance(args[0], list)):
+        if len(args) == 1 and (isinstance(args[0], (np.ndarray, list))):
             pens = args[0]
             if 'mask' in kargs and kargs['mask'] is not None:
                 pens = pens[kargs['mask']]
@@ -463,7 +458,7 @@ class ScatterPlotItem(GraphicsObject):
         update = kargs.pop('update', True)
         dataSet = kargs.pop('dataSet', self.data)
 
-        if len(args) == 1 and (isinstance(args[0], np.ndarray) or isinstance(args[0], list)):
+        if len(args) == 1 and (isinstance(args[0], (np.ndarray, list))):
             brushes = args[0]
             if 'mask' in kargs and kargs['mask'] is not None:
                 brushes = brushes[kargs['mask']]
@@ -486,7 +481,7 @@ class ScatterPlotItem(GraphicsObject):
         if dataSet is None:
             dataSet = self.data
 
-        if isinstance(symbol, np.ndarray) or isinstance(symbol, list):
+        if isinstance(symbol, (np.ndarray, list)):
             symbols = symbol
             if mask is not None:
                 symbols = symbols[mask]
@@ -509,7 +504,7 @@ class ScatterPlotItem(GraphicsObject):
         if dataSet is None:
             dataSet = self.data
 
-        if isinstance(size, np.ndarray) or isinstance(size, list):
+        if isinstance(size, (np.ndarray, list)):
             sizes = size
             if mask is not None:
                 sizes = sizes[mask]
@@ -528,7 +523,7 @@ class ScatterPlotItem(GraphicsObject):
         if dataSet is None:
             dataSet = self.data
 
-        if isinstance(data, np.ndarray) or isinstance(data, list):
+        if isinstance(data, (np.ndarray, list)):
             if mask is not None:
                 data = data[mask]
             if len(data) != len(dataSet):
@@ -652,7 +647,7 @@ class ScatterPlotItem(GraphicsObject):
             self.bounds[ax] = (np.nanmin(d) - self._maxSpotWidth*0.7072, np.nanmax(d) + self._maxSpotWidth*0.7072)
             return self.bounds[ax]
         elif frac <= 0.0:
-            raise Exception("Value for parameter 'frac' must be > 0. (got %s)" % str(frac))
+            raise Exception(f"Value for parameter 'frac' must be > 0. (got {str(frac)})")
         else:
             mask = np.isfinite(d)
             d = d[mask]
@@ -712,9 +707,7 @@ class ScatterPlotItem(GraphicsObject):
         #pts[1] = self.data['y']
         pts = fn.transformCoordinates(tr, pts)
         pts -= self.data['width']
-        pts = np.clip(pts, -2**30, 2**30) ## prevent Qt segmentation fault.
-
-        return pts
+        return np.clip(pts, -2**30, 2**30)
 
     def getViewMask(self, pts):
         # Return bool mask indicating all points that are within viewbox
@@ -724,11 +717,12 @@ class ScatterPlotItem(GraphicsObject):
             return None
         viewBounds = vb.mapRectToDevice(vb.boundingRect())
         w = self.data['width']
-        mask = ((pts[0] + w > viewBounds.left()) &
-                (pts[0] - w < viewBounds.right()) &
-                (pts[1] + w > viewBounds.top()) &
-                (pts[1] - w < viewBounds.bottom())) ## remove out of view points
-        return mask
+        return (
+            (pts[0] + w > viewBounds.left())
+            & (pts[0] - w < viewBounds.right())
+            & (pts[1] + w > viewBounds.top())
+            & (pts[1] - w < viewBounds.bottom())
+        )
 
 
     @debug.warnOnException  ## raising an exception here causes crash

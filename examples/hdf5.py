@@ -105,14 +105,14 @@ def createFile(finalSize=2000000000):
     """
     
     chunk = np.random.normal(size=1000000).astype(np.float32)
-    
+
     f = h5py.File('test.hdf5', 'w')
     f.create_dataset('data', data=chunk, chunks=True, maxshape=(None,))
     data = f['data']
 
     nChunks = finalSize // (chunk.size * chunk.itemsize)
     with pg.ProgressDialog("Generating test.hdf5...", 0, nChunks) as dlg:
-        for i in range(nChunks):
+        for _ in range(nChunks):
             newshape = [data.shape[0] + chunk.shape[0]]
             data.resize(newshape)
             data[-chunk.shape[0]:] = chunk

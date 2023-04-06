@@ -14,7 +14,7 @@ import weakref
 class ViewBoxMenu(QtGui.QMenu):
     def __init__(self, view):
         QtGui.QMenu.__init__(self)
-        
+
         self.view = weakref.ref(view)  ## keep weakref to view to avoid circular reference (don't know why, but this prevents the ViewBox from being collected)
         self.valid = False  ## tells us whether the ui needs to be updated
         self.viewMap = weakref.WeakValueDictionary()  ## weakrefs to all views listed in the link combos
@@ -23,14 +23,14 @@ class ViewBoxMenu(QtGui.QMenu):
         self.viewAll = QtGui.QAction("View All", self)
         self.viewAll.triggered.connect(self.autoRange)
         self.addAction(self.viewAll)
-        
+
         self.axes = []
         self.ctrl = []
         self.widgetGroups = []
         self.dv = QtGui.QDoubleValidator(self)
         for axis in 'XY':
             m = QtGui.QMenu()
-            m.setTitle("%s Axis" % axis)
+            m.setTitle(f"{axis} Axis")
             w = QtGui.QWidget()
             ui = AxisCtrlTemplate()
             ui.setupUi(w)
@@ -42,7 +42,7 @@ class ViewBoxMenu(QtGui.QMenu):
             self.ctrl.append(ui)
             wg = WidgetGroup(w)
             self.widgetGroups.append(w)
-            
+
             connects = [
                 (ui.mouseCheck.toggled, 'MouseToggled'),
                 (ui.manualRadio.clicked, 'ManualClicked'),
@@ -54,7 +54,7 @@ class ViewBoxMenu(QtGui.QMenu):
                 (ui.autoPanCheck.toggled, 'AutoPanToggled'),
                 (ui.visibleOnlyCheck.toggled, 'VisibleOnlyToggled')
             ]
-            
+
             for sig, fn in connects:
                 sig.connect(getattr(self, axis.lower()+fn))
 
@@ -64,10 +64,10 @@ class ViewBoxMenu(QtGui.QMenu):
         #self.export = QtGui.QMenu("Export")
         #self.setExportMethods(view.exportMethods)
         #self.addMenu(self.export)
-        
+
         self.leftMenu = QtGui.QMenu("Mouse Mode")
         group = QtGui.QActionGroup(self)
-        
+
         # This does not work! QAction _must_ be initialized with a permanent 
         # object as the parent or else it may be collected prematurely.
         #pan = self.leftMenu.addAction("3 button", self.set3ButtonMode)
@@ -78,16 +78,16 @@ class ViewBoxMenu(QtGui.QMenu):
         self.leftMenu.addAction(zoom)
         pan.triggered.connect(self.set3ButtonMode)
         zoom.triggered.connect(self.set1ButtonMode)
-        
+
         pan.setCheckable(True)
         zoom.setCheckable(True)
         pan.setActionGroup(group)
         zoom.setActionGroup(group)
         self.mouseModes = [pan, zoom]
         self.addMenu(self.leftMenu)
-        
+
         self.view().sigStateChanged.connect(self.viewStateChanged)
-        
+
         self.updateState()
 
     def setExportMethods(self, methods):
@@ -104,13 +104,13 @@ class ViewBoxMenu(QtGui.QMenu):
         
     def updateState(self):
         ## Something about the viewbox has changed; update the menu GUI
-        
+
         state = self.view().getState(copy=False)
         if state['mouseMode'] == ViewBox.PanMode:
             self.mouseModes[0].setChecked(True)
         else:
             self.mouseModes[1].setChecked(True)
-            
+
         for i in [0,1]:  # x, y
             tr = state['targetRange'][i]
             self.ctrl[i].minText.setText("%0.5g" % tr[0])
@@ -122,7 +122,7 @@ class ViewBoxMenu(QtGui.QMenu):
             else:
                 self.ctrl[i].manualRadio.setChecked(True)
             self.ctrl[i].mouseCheck.setChecked(state['mouseEnabled'][i])
-            
+
             ## Update combo to show currently linked view
             c = self.ctrl[i].linkCombo
             c.blockSignals(True)
@@ -130,20 +130,20 @@ class ViewBoxMenu(QtGui.QMenu):
                 view = state['linkedViews'][i]  ## will always be string or None
                 if view is None:
                     view = ''
-                    
+
                 ind = c.findText(view)
-                    
+
                 if ind == -1:
                     ind = 0
                 c.setCurrentIndex(ind)
             finally:
                 c.blockSignals(False)
-            
+
             self.ctrl[i].autoPanCheck.setChecked(state['autoPan'][i])
             self.ctrl[i].visibleOnlyCheck.setChecked(state['autoVisibleOnly'][i])
             xy = ['x', 'y'][i]
-            self.ctrl[i].invertCheck.setChecked(state.get(xy+'Inverted', False))
-        
+            self.ctrl[i].invertCheck.setChecked(state.get(f'{xy}Inverted', False))
+
         self.valid = True
         
     def popup(self, *args):

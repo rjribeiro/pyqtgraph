@@ -111,20 +111,17 @@ def change(param, changes):
     print("tree changes:")
     for param, change, data in changes:
         path = p.childPath(param)
-        if path is not None:
-            childName = '.'.join(path)
-        else:
-            childName = param.name()
-        print('  parameter: %s'% childName)
-        print('  change:    %s'% change)
-        print('  data:      %s'% str(data))
+        childName = '.'.join(path) if path is not None else param.name()
+        print(f'  parameter: {childName}')
+        print(f'  change:    {change}')
+        print(f'  data:      {str(data)}')
         print('  ----------')
     
 p.sigTreeStateChanged.connect(change)
 
 
 def valueChanging(param, value):
-    print("Value changing (not finalized): %s %s" % (param, value))
+    print(f"Value changing (not finalized): {param} {value}")
     
 # Too lazy for recursion:
 for child in p.children():

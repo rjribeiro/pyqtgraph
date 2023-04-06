@@ -14,7 +14,7 @@ p.setLabel('bottom', 'Index', units='B')
 curve = p.plot()
 
 # Add a large number of horizontal InfiniteLine to plot
-for i in range(100):
+for _ in range(100):
     line = pg.InfiniteLine(pos=np.random.randint(5000), movable=True)
     p.addItem(line)
 
